@@ -1,0 +1,6 @@
+{
+  "schema": 1,
+  "name": "stringutils",
+  "version": "0.1.0",
+  "description": "Unicode text helpers, pinned Unicode 17 full case folding and original-index caseless search, Unicode whitespace trimming, bounded edit distance and quoted records"
+}

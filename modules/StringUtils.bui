@@ -1,0 +1,243 @@
+Public Import stringutils.StringUtilsUnicode.{ StringUtilsUnicodeVersion, CaseFold, CaselessCompare, CaselessEquals, CaselessIndexOf, CaselessContains, UnicodeTrim, UnicodeLTrim, UnicodeRTrim }
+
+''' Concatenate text count times. Nonpositive counts produce empty text.
+Public Function Repeat(text As String, count As Integer) As String
+    Dim output As String
+    Dim chunk As String = text
+    While count > 0
+        If count Mod 2 = 1 Then output += chunk
+        count = count \ 2
+        If count > 0 Then chunk += chunk
+    End While
+    Return output
+End Function
+
+''' Reverse Unicode codepoints, not grapheme clusters.
+Public Function Reverse(text As String) As String
+    Dim chars As Array Of String = String.Chars(text)
+    Dim output() As String
+    For i As Integer = Array.Count(chars) - 1 To 0 Step -1
+        Array.Append(output, chars(i))
+    Next
+    Return String.Join(output, "")
+End Function
+
+''' Remove characters in charset. Matching is exact by default.
+Public Function Remove(text As String, charset As String = " ", caseSensitive As Boolean = True) As String
+    Dim output() As String
+    For Each ch As String In String.Chars(text)
+        If Not String.Contains(charset, ch, caseSensitive) Then Array.Append(output, ch)
+    Next
+    Return String.Join(output, "")
+End Function
+
+''' Collapse repeated identical characters belonging to charset.
+Public Function Squeeze(text As String, charset As String = " ") As String
+    Dim output() As String
+    Dim previous As String
+    For Each ch As String In String.Chars(text)
+        If String.Compare(ch, previous, True) <> 0 Or Not String.Contains(charset, ch, True) Then
+            Array.Append(output, ch)
+        End If
+        previous = ch
+    Next
+    Return String.Join(output, "")
+End Function
+
+Private Function Padding(width As Integer, paddingText As String) As String
+    If String.Len(paddingText) = 0 Then Throw New InvalidArgumentException("padding must not be empty")
+    If width <= 0 Then Return ""
+    Return String.Left(Repeat(paddingText, (width - 1) \ String.Len(paddingText) + 1), width)
+End Function
+
+Public Function PadLeft(text As String, width As Integer, paddingText As String = " ") As String
+    If String.Len(paddingText) = 0 Then Throw New InvalidArgumentException("padding must not be empty")
+    If width <= String.Len(text) Then Return text
+    Return Padding(width - String.Len(text), paddingText) + text
+End Function
+
+Public Function PadRight(text As String, width As Integer, paddingText As String = " ") As String
+    If String.Len(paddingText) = 0 Then Throw New InvalidArgumentException("padding must not be empty")
+    If width <= String.Len(text) Then Return text
+    Return text + Padding(width - String.Len(text), paddingText)
+End Function
+
+Public Function PadBoth(text As String, width As Integer, paddingText As String = " ") As String
+    If String.Len(paddingText) = 0 Then Throw New InvalidArgumentException("padding must not be empty")
+    If width <= String.Len(text) Then Return text
+    Dim missing As Integer = width - String.Len(text)
+    Return Padding(missing \ 2, paddingText) + text + Padding(missing - missing \ 2, paddingText)
+End Function
+
+''' Drop characters from the right; nonpositive counts leave text unchanged.
+Public Function Chop(text As String, count As Integer) As String
+    If count <= 0 Then Return text
+    If count >= String.Len(text) Then Return ""
+    Return String.Left(text, String.Len(text) - count)
+End Function
+
+''' Replace a validated 1-based range; zero length inserts at a boundary.
+Public Function ReplaceRange(text As String, start As Integer, length As Integer, replacement As String) As String
+    Dim size As Integer = String.Len(text)
+    If start < 1 Or start > size + 1 Or length < 0 Then Throw New InvalidArgumentException("invalid replacement range")
+    If length > size - start + 1 Then Throw New InvalidArgumentException("replacement range exceeds text")
+    Return String.Left(text, start - 1) + replacement + String.Substring(text, start - 1 + length)
+End Function
+
+Public Function SplitByLength(text As String, width As Integer) As Array Of String
+    If width <= 0 Then Throw New InvalidArgumentException("width must be positive")
+    Dim output() As String
+    Dim start As Integer = 0
+    While start < String.Len(text)
+        Array.Append(output, String.Substring(text, start, width))
+        start += width
+    End While
+    Return output
+End Function
+
+''' Count nonoverlapping occurrences; empty needle matches every boundary.
+Public Function Count(text As String, needle As String, caseSensitive As Boolean = True) As Integer
+    If String.Len(needle) = 0 Then Return String.Len(text) + 1
+    Dim count As Integer
+    Dim start As Integer = 0
+    While start <= String.Len(text)
+        Dim found As Integer = String.IndexOf(text, needle, start, caseSensitive)
+        If found < 0 Then Exit While
+        count += 1
+        start = found + String.Len(needle)
+    End While
+    Return count
+End Function
+
+''' Exact codepoint Levenshtein distance, with an explicit CPU work bound.
+Public Function EditDistance(leftText As String, rightText As String, maxCells As Integer = 1000000) As Integer
+    Dim leftChars As Array Of String = String.Chars(leftText)
+    Dim rightChars As Array Of String = String.Chars(rightText)
+    Dim n As Integer = Array.Count(leftChars)
+    Dim m As Integer = Array.Count(rightChars)
+    If maxCells < 1 Then Throw New InvalidArgumentException("maxCells must be positive")
+    If n = 0 Then Return m
+    If m = 0 Then Return n
+    If n > maxCells \ m Then Throw New InvalidArgumentException("edit distance work budget exceeded")
+    Dim row() As Integer
+    For j As Integer = 0 To m
+        Array.Append(row, j)
+    Next
+    For i As Integer = 1 To n
+        Dim diagonal As Integer = row(0)
+        row(0) = i
+        For j As Integer = 1 To m
+            Dim prior As Integer = row(j)
+            Dim cost As Integer = 1
+            If String.Compare(leftChars(i - 1), rightChars(j - 1), True) = 0 Then cost = 0
+            Dim best As Integer = diagonal + cost
+            If row(j) + 1 < best Then best = row(j) + 1
+            If row(j - 1) + 1 < best Then best = row(j - 1) + 1
+            row(j) = best
+            diagonal = prior
+        Next
+    Next
+    Return row(m)
+End Function
+
+''' Parse one record, respecting quoted fields and doubled embedded quotes.
+Public Function SplitQuoted(text As String, delimiter As String = ",", removeQuotes As Boolean = True) As Array Of String
+    If String.Len(delimiter) = 0 Or String.Contains(delimiter, "\"", True) Then Throw New InvalidArgumentException("invalid delimiter")
+    Dim output() As String
+    Dim field As String
+    Dim quoted As Boolean
+    Dim afterQuote As Boolean
+    Dim i As Integer = 0
+    While i < String.Len(text)
+        Dim ch As String = String.Substring(text, i, 1)
+        If quoted Then
+            If ch = "\"" Then
+                If String.Substring(text, i + 1, 1) = "\"" Then
+                    If removeQuotes Then
+                        field += "\""
+                    Else
+                        field += "\"\""
+                    End If
+                    i += 2
+                    Continue While
+                End If
+                quoted = False
+                afterQuote = True
+                If Not removeQuotes Then field += ch
+            Else
+                field += ch
+            End If
+        ElseIf String.Compare(String.Substring(text, i, String.Len(delimiter)), delimiter, True) = 0 Then
+            Array.Append(output, field)
+            field = ""
+            afterQuote = False
+            i += String.Len(delimiter)
+            Continue While
+        ElseIf afterQuote Then
+            Throw New InvalidArgumentException("text follows closing quote")
+        ElseIf ch = "\"" Then
+            If String.Len(field) > 0 Then Throw New InvalidArgumentException("quote must start a field")
+            quoted = True
+            If Not removeQuotes Then field += ch
+        Else
+            field += ch
+        End If
+        i += 1
+    End While
+    If quoted Then Throw New InvalidArgumentException("unterminated quoted field")
+    Array.Append(output, field)
+    Return output
+End Function
+
+Public Function JoinQuoted(fields As Array Of String, delimiter As String = ",") As String
+    If String.Len(delimiter) = 0 Or String.Contains(delimiter, "\"", True) Then Throw New InvalidArgumentException("invalid delimiter")
+    Dim output() As String
+    For Each field As String In fields
+        ' Quote partial delimiter prefixes too: a suffix can overlap the next separator.
+        If String.Contains(field, String.Left(delimiter, 1), True) Or String.Contains(field, "\"", True) Or String.Contains(field, "\n", True) Or String.Contains(field, "\r", True) Then
+            Array.Append(output, "\"" + String.Replace(field, "\"", "\"\"", True) + "\"")
+        Else
+            Array.Append(output, field)
+        End If
+    Next
+    Return String.Join(output, delimiter)
+End Function
+
+Public Function CountFieldsQuoted(text As String, delimiter As String = ",") As Integer
+    Return Array.Count(SplitQuoted(text, delimiter))
+End Function
+
+Public Function NthFieldQuoted(text As String, delimiter As String, index As Integer) As String
+    Dim fields As Array Of String = SplitQuoted(text, delimiter)
+    If index < 1 Or index > Array.Count(fields) Then Throw New InvalidArgumentException("field index out of range")
+    Return fields(index - 1)
+End Function
+
+''' Uppercase space-separated hexadecimal of the UTF-8 bytes.
+Public Function HexB(source As String) As String
+    Dim hex As String = String.UCase(Bytes.FromString(source, Text.Encodings.UTF8).ToHex())
+    Dim pairs As Array Of String = SplitByLength(hex, 2)
+    Return String.Join(pairs, " ")
+End Function
+
+Public Function LTrim(text As String, charset As String) As String
+    Dim start As Integer = 0
+    While start < String.Len(text)
+        If Not String.Contains(charset, String.Substring(text, start, 1), True) Then Exit While
+        start += 1
+    End While
+    Return String.Substring(text, start)
+End Function
+
+Public Function RTrim(text As String, charset As String) As String
+    Dim count As Integer = String.Len(text)
+    While count > 0
+        If Not String.Contains(charset, String.Substring(text, count - 1, 1), True) Then Exit While
+        count -= 1
+    End While
+    Return String.Left(text, count)
+End Function
+
+Public Function Trim(text As String, charset As String) As String
+    Return RTrim(LTrim(text, charset), charset)
+End Function
