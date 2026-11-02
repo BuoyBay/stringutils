@@ -1,4 +1,4 @@
-# Unicode search/transform with explicit policies
+# Unicode search and transform
 
 Text helpers inspired by Joe Strout's public-domain StringUtils.
 The package supplies 20 original helpers and nine Unicode APIs, with no native dependencies. See

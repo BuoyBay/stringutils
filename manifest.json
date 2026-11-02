@@ -2,5 +2,5 @@
   "schema": 1,
   "name": "stringutils",
   "version": "0.1.0",
-  "description": "Unicode search/transform with explicit policies"
+  "description": "Unicode search and transform"
 }
