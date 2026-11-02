@@ -64,15 +64,7 @@ have no output-size limit; applications should bound untrusted widths and counts
 
 ## Example and checks
 
-The console example (not included in this repository) shows Unicode
-text, padding, edit distance and quoted fields.
-
-It compiler-checks every new Buoy file for all six platform/architecture targets,
-seals a fresh package in a temporary consumer, and compiles/runs the tests and
-example on the host. The runtime tests cover exact case behavior, multibyte text,
-quoted roundtrips with empty fields, quotes and newlines, multi-character
-delimiters, malformed records and argument/work-budget rejection. Native GUI work
-is not involved.
+Use the text helpers for Unicode strings, padding, edit distance and quoted-field parsing.
 
 ## Unicode folding, search and whitespace
 
@@ -116,5 +108,3 @@ the whole source even for an empty needle or a late start. Storage is O(n+m)
 in bounded input/folded scalars; these are whole-string operations. Inputs must
 be valid, NUL-free UTF-8 text: Buoy's inherited String NUL/invalid-UTF-8 behavior
 is outside this package's validation contract.
-
-Maintainers run the private validation suite before release. See the repository README for public build instructions.

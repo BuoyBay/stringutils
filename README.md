@@ -1,6 +1,6 @@
 # Search and transform Unicode text with explicit policies
 
-Pure Buoy text helpers inspired by Joe Strout's public-domain StringUtils.
+Text helpers inspired by Joe Strout's public-domain StringUtils.
 The package supplies 20 original helpers and nine Unicode APIs, with no native dependencies. See
 [provenance and the complete original API gap map](PROVENANCE.md).
 
@@ -52,8 +52,6 @@ On your own machine, install Buoy and run:
 ```sh
 buoy ai init --both
 ```
-
-The generated agent files and editor settings stay local and are ignored by Git.
 
 ## Contributing
 

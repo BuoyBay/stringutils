@@ -50,5 +50,3 @@ the whole source even for an empty needle or a late start. Storage is O(n+m)
 in bounded input/folded scalars; these are whole-string operations. Inputs must
 be valid, NUL-free UTF-8 text: Buoy's inherited String NUL/invalid-UTF-8 behavior
 is outside this package's validation contract.
-
-Maintainers run the private validation suite before release. See the repository README for public build instructions.
