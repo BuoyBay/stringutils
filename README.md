@@ -1,4 +1,4 @@
-# Search and transform Unicode text with explicit policies
+# Unicode search/transform with explicit policies
 
 Text helpers inspired by Joe Strout's public-domain StringUtils.
 The package supplies 20 original helpers and nine Unicode APIs, with no native dependencies. See
@@ -17,7 +17,7 @@ consumer project for reproducible installs.
 
 ## Example
 
-```buoy
+```basic
 Import stringutils
 
 Sub Main()
